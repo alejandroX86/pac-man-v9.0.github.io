@@ -1,0 +1,566 @@
+Claro, a continuación te proporciono el código completo con el nombre de archivo de sonido que has especificado:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Man Carrera LGTI UNPAZ</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #00f;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #gameInfo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 12px; /* Reducir el tamaño de la fuente en un 50% */
+        }
+        #approvedCourses {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #fff;
+            width: 200px;
+            text-align: right;
+            font-size: 12px; /* Reducir el tamaño de la fuente en un 50% */
+        }
+        #approvedCoursesTitle {
+            font-size: 14px; /* Reducir el tamaño de la fuente en un 50% */
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        #approvedCoursesList p {
+            font-size: 10px; /* Reducir a la mitad el tamaño de las letras */
+        }
+        h2 {
+            margin: 0;
+            display: inline-block;
+            font-size: 14px; /* Reducir el tamaño de la fuente en un 50% */
+        }
+        #studentName {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 14px; /* Reducir el tamaño de la fuente en un 50% */
+        }
+        #studentNameInput {
+            font-size: 14px; /* Reducir el tamaño de la fuente en un 50% */
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameInfo">
+        <h2>Pac-Man</h2> <h2>Carrera LGTI UNPAZ</h2>
+        <p>Autor: Omar Bazar</p>
+        <p>Level: <span id="level">1</span></p>
+        <p>Lives: <span id="lives">3</span></p>
+        <p>Score: <span id="score">0</span></p>
+        <p>Cantidad de Materias: <span id="approvedCoursesCount">0</span></p>
+    </div>
+    <div id="approvedCourses">
+        <div id="approvedCoursesTitle">Materias Aprobadas</div>
+        <div id="approvedCoursesList"></div>
+    </div>
+    <div id="studentName">
+        Nombre: <input type="text" id="studentNameInput" placeholder="Ingresa tu nombre">
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <audio id="pacmanSound" src="he-pacman-variations-17844.mp3.crdownload" preload="auto"></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const pacmanSound = document.getElementById('pacmanSound');
+
+        // Game variables
+        let pacman = { x: 30, y: 30, radius: 15, mouth: 0, direction: 0 };
+        let fruits = [];
+        let worms = [];
+        let ghosts = [];
+        let maze = [];
+        let level = 1;
+        let lives = 3;
+        let score = 0;
+        let message = '';
+        let messageTimer = 0;
+        let approvedCourses = [];
+        let ghostMouth = 0;
+        let ghostMouthOpen = true;
+        let ghostArmAngle = 0;
+
+        // Course data
+        const courseData = [
+            ["Análisis Matemático I", "Arquitectura de Computadoras I", "Introducción a la Programación", "Estructuras Discretas", "Ciencia, Tecnología y Sociedad", "Análisis Matemático II", "Álgebra y Geometría Analítica", "Algoritmos y Programación", "Arquitectura de Computadoras II", "Inglés I"],
+            ["Sistemas Operativos I", "Economía General", "Inglés II", "Ingeniería de Software I", "Paradigmas de Programación", "Sistemas Operativos II", "Laboratorio de Programación y Lenguajes", "Programación Orientada a Objetos", "Base de Datos I", "Administración I"],
+            ["Probabilidad y Estadísticas", "Comunicaciones y Redes", "Ingeniería de Software II", "Administración II", "Laboratorio de Software", "Base de Datos II", "Contabilidad I", "Trabajo de Campo"],
+            ["Investigación Operativa", "Arquitectura Web", "Seguridad Informática", "Administración de Recursos Humanos", "Contabilidad Avanzada", "Sistemas Inteligentes", "Gestión de la Tecnología", "Comercialización", "Planificación Financiera y Proyecto de Inversión", "Optativa I"],
+            ["Gestión de Proyectos", "Inteligencia de los Negocios", "Optativa II", "Dirección Estratégica", "Trabajo Final de Grado"]
+        ];
+
+        // Initialize game
+        function initGame() {
+            generateMaze();
+            fruits = generateFruits();
+            worms = generateWorms();
+            ghosts = generateGhosts();
+            updateGameInfo();
+        }
+
+        function generateMaze() {
+            const mazeLayout = [
+                "####################",
+                "#........#.........#",
+                "#.##.###.#.###.##..#",
+                "#.#...............#",
+                "#.#.##.#####.##.#.#",
+                "#.#.#...........#.#",
+                "#.....#######.....#",
+                "#.#.#...........#.#",
+                "#.#.##.#####.##.#.#",
+                "#................#",
+                "#.##.###.#.###.##.#",
+                "#........#........#",
+                "####################"
+            ];
+
+            maze = mazeLayout.map(row => row.split(''));
+        }
+
+        function generateFruits() {
+            return courseData[level - 1].map(course => {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * maze[0].length);
+                    y = Math.floor(Math.random() * maze.length);
+                } while (maze[y][x] === '#');
+
+                return { x: x * 30 + 15, y: y * 30 + 15, radius: 7, name: course };
+            });
+        }
+
+        function generateWorms() {
+            return Array(3).fill().map(() => {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * maze[0].length);
+                    y = Math.floor(Math.random() * maze.length);
+                } while (maze[y][x] === '#');
+
+                return { x: x * 30 + 15, y: y * 30 + 15, width: 20, height: 10 };
+            });
+        }
+
+        function generateGhosts() {
+            return Array(2).fill().map(() => {
+                let x, y;
+                do {
+                    x = Math.floor(Math.random() * maze[0].length);
+                    y = Math.floor(Math.random() * maze.length);
+                } while (maze[y][x] === '#');
+
+                return { x: x * 30 + 15, y: y * 30 + 15, radius: 15, direction: Math.random() * Math.PI * 2 };
+            });
+        }
+
+        function updateGameInfo() {
+            document.getElementById('level').textContent = level;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('score').textContent = score;
+            document.getElementById('approvedCoursesCount').textContent = approvedCourses.length;
+            document.getElementById('approvedCoursesList').innerHTML = approvedCourses.map(course => `<p>${course}</p>`).join('');
+        }
+
+        function drawMaze() {
+            for (let y = 0; y < maze.length; y++) {
+                for (let x = 0; x < maze[y].length; x++) {
+                    if (maze[y][x] === '#') {
+                        ctx.fillStyle = 'blue';
+                        ctx.fillRect(x * 30 + 5, y * 30 + 5, 20, 20);
+                    }
+                }
+            }
+
+            // Draw LGTI in the center of the maze
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial'; // Reducir el tamaño de la fuente a la mitad
+            ctx.textAlign = 'center';
+            ctx.fillText('LGTI', canvas.width / 2, canvas.height / 2);
+        }
+
+        function drawPacman() {
+            ctx.beginPath();
+            ctx.arc(pacman.x, pacman.y, pacman.radius, pacman.mouth + pacman.direction, 2 * Math.PI - pacman.mouth + pacman.direction);
+            ctx.lineTo(pacman.x, pacman.y);
+            ctx.fillStyle = 'cyan';
+            ctx.fill();
+            ctx.closePath();
+
+            // Draw single white stripe
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(pacman.x - pacman.radius, pacman.y);
+            ctx.lineTo(pacman.x + pacman.radius, pacman.y);
+            ctx.stroke();
+
+            // Draw eyes
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(pacman.x - 5, pacman.y - 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(pacman.x + 5, pacman.y - 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+
+            // Draw pupils
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(pacman.x - 5, pacman.y - 5, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+            ctx.beginPath();
+            ctx.arc(pacman.x + 5, pacman.y - 5, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawFruits() {
+            fruits.forEach(fruit => {
+                ctx.beginPath();
+                ctx.arc(fruit.x, fruit.y, fruit.radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        function drawWorms() {
+            worms.forEach(worm => {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(worm.x - worm.width / 2, worm.y - worm.height / 2, worm.width, worm.height);
+            });
+        }
+
+        function drawGhosts() {
+            ghosts.forEach(ghost => {
+                // Draw ghost shape
+                ctx.beginPath();
+                ctx.arc(ghost.x, ghost.y, ghost.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'pink';
+                ctx.fill();
+                ctx.closePath();
+
+                // Draw eyes
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(ghost.x - 5, ghost.y - 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+                ctx.beginPath();
+                ctx.arc(ghost.x + 5, ghost.y - 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+
+                // Draw round mouth
+                ctx.beginPath();
+                ctx.arc(ghost.x, ghost.y + 5, ghostMouthOpen ? 5 : 2, 0, Math.PI);
+                ctx.closePath();
+                ctx.fillStyle = 'black';
+                ctx.fill();
+
+                // Draw arms
+                ctx.fillStyle = 'pink'; // Color sólido para los brazos
+                ctx.beginPath();
+                ctx.ellipse(ghost.x - 10, ghost.y + 10 + Math.sin(ghostArmAngle) * 5, 4, 12, 0, 0, Math.PI * 2); // 20% más pequeños
+                ctx.ellipse(ghost.x + 10, ghost.y + 10 + Math.sin(ghostArmAngle) * 5, 4, 12, 0, 0, Math.PI * 2); // 20% más pequeños
+                ctx.fill();
+            });
+        }
+
+        function movePacman() {
+            const speed = 3;
+            let newX = pacman.x;
+            let newY = pacman.y;
+
+            if (keys.ArrowLeft || keys.touchLeft) {
+                newX -= speed;
+                pacman.direction = Math.PI;
+            }
+            if (keys.ArrowRight || keys.touchRight) {
+                newX += speed;
+                pacman.direction = 0;
+            }
+            if (keys.ArrowUp || keys.touchUp) {
+                newY -= speed;
+                pacman.direction = 3 * Math.PI / 2;
+            }
+            if (keys.ArrowDown || keys.touchDown) {
+                newY += speed;
+                pacman.direction = Math.PI / 2;
+            }
+
+            const gridX = Math.floor(newX / 30);
+            const gridY = Math.floor(newY / 30);
+
+            if (maze[gridY] && maze[gridY][gridX] !== '#') {
+                pacman.x = newX;
+                pacman.y = newY;
+            }
+
+            pacman.mouth = (pacman.mouth + 0.1) % (Math.PI / 4);
+        }
+
+        function moveGhosts() {
+            ghosts.forEach(ghost => {
+                const angle = Math.atan2(pacman.y - ghost.y, pacman.x - ghost.x);
+                ghost.x += Math.cos(angle) * 1.5;
+                ghost.y += Math.sin(angle) * 1.5;
+
+                const gridX = Math.floor(ghost.x / 30);
+                const gridY = Math.floor(ghost.y / 30);
+
+                if (maze[gridY] && maze[gridY][gridX] === '#') {
+                    ghost.x -= Math.cos(angle) * 1.5;
+                    ghost.y -= Math.sin(angle) * 1.5;
+                }
+            });
+
+            if (ghostMouthOpen) {
+                ghostMouth += 0.5;
+                if (ghostMouth >= 5) {
+                    ghostMouthOpen = false;
+                }
+            } else {
+                ghostMouth -= 0.5;
+                if (ghostMouth <= 2) {
+                    ghostMouthOpen = true;
+                }
+            }
+
+            ghostArmAngle = (ghostArmAngle + 0.1) % (Math.PI * 2);
+        }
+
+        function checkCollisions() {
+            fruits = fruits.filter(fruit => {
+                const dx = fruit.x - pacman.x;
+                const dy = fruit.y - pacman.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < pacman.radius + fruit.radius) {
+                    score += 10;
+                    playSound('eat');
+                    showMessage(fruit.name, 2000);
+                    approvedCourses.push(fruit.name);
+                    if (approvedCourses.length >= 28) {
+                        showMessage('Felicitaciones te recibiste de Analista de Sistemas !!!', 5000);
+                    }
+                    if (approvedCourses.length >= 48) {
+                        showMessage('Felicitaciones te recibiste de Licenciado LGTI !!!', 5000);
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+            worms = worms.filter(worm => {
+                if (pacman.x > worm.x - worm.width / 2 &&
+                    pacman.x < worm.x + worm.width / 2 &&
+                    pacman.y > worm.y - worm.height / 2 &&
+                    pacman.y < worm.y + worm.height / 2) {
+                    score += 50;
+                    playSound('worm');
+                    showMessage('¡¡¡Promocionaste Materias!!!', 4000);
+                    return false;
+                }
+                return true;
+            });
+
+            ghosts = ghosts.filter(ghost => {
+                const dx = ghost.x - pacman.x;
+                const dy = ghost.y - pacman.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < pacman.radius + ghost.radius) {
+                    lives = Math.max(lives - 1, 0); // Asegurar que las vidas no sean negativas
+                    if (lives <= 0) {
+                        gameOver();
+                    } else {
+                        resetLevel();
+                    }
+                    return true;
+                }
+                return true;
+            });
+
+            if (fruits.length === 0) {
+                levelUp();
+            }
+        }
+
+        function resetLevel() {
+            showMessage('Reprobaste y quedaste libre a cero en todas las materias', 3000);
+            playSound('caught');
+            score = 0;
+            fruits = generateFruits();
+            worms = generateWorms();
+            ghosts = generateGhosts();
+            pacman.x = 30;
+            pacman.y = 30;
+        }
+
+        function levelUp() {
+            level = Math.min(level + 1, 5); // Asegurar que el nivel no supere 5
+            lives++; // Add an extra life when leveling up
+            document.getElementById('approvedCoursesList').innerHTML = ''; // Clear the visible list
+            if (level > 5) {
+                winGame();
+            } else {
+                showMessage(`Pasaste al siguiente año! Nivel ${level}`, 3000);
+                initGame();
+                playSound('levelup');
+            }
+        }
+
+        function gameOver() {
+            showMessage('Game Over', 3000);
+            setTimeout(() => {
+                level = 1;
+                lives = 3;
+                score = 0;
+                initGame();
+            }, 3000);
+        }
+
+        function winGame() {
+            const studentName = document.getElementById('studentNameInput').value;
+            if (approvedCourses.length >= 28) {
+                showMessage(`${studentName} te recibiste de Analista de Sistemas !!!`, 5000);
+            }
+            if (approvedCourses.length >= 48) {
+                showMessage(`${studentName} te recibiste de Licenciado LGTI !!!`, 5000);
+            }
+            playSound('win');
+            setTimeout(() => {
+                level = 1;
+                lives = 3;
+                score = 0;
+                initGame();
+            }, 5000);
+        }
+
+        function showMessage(msg, duration) {
+            message = msg;
+            messageTimer = duration;
+        }
+
+        function drawMessage() {
+            if (messageTimer > 0) {
+                ctx.fillStyle = 'white';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(message, canvas.width / 2, canvas.height - 30);
+                messageTimer -= 16; // Assuming 60 FPS
+            }
+        }
+
+        function playSound(soundType) {
+            if (soundType === 'eat') {
+                pacmanSound.play();
+            } else {
+                console.log(`Playing sound: ${soundType}`);
+            }
+        }
+
+        const keys = {};
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = touch.clientX - pacman.x;
+            const dy = touch.clientY - pacman.y;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0) {
+                    keys.touchRight = true;
+                    keys.touchLeft = false;
+                } else {
+                    keys.touchLeft = true;
+                    keys.touchRight = false;
+                }
+            } else {
+                if (dy > 0) {
+                    keys.touchDown = true;
+                    keys.touchUp = false;
+                } else {
+                    keys.touchUp = true;
+                    keys.touchDown = false;
+                }
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.touchLeft = false;
+            keys.touchRight = false;
+            keys.touchUp = false;
+            keys.touchDown = false;
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawMaze();
+            movePacman();
+            moveGhosts();
+            checkCollisions();
+
+            drawPacman();
+            drawFruits();
+            drawWorms();
+            drawGhosts();
+            drawMessage();
+
+            updateGameInfo();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html>
+```
+
+### Notas Importantes:
+
+1. **Nombre del Archivo de Sonido**: Asegúrate de que el archivo de sonido se llama `he-pacman-variations-17844.mp3.crdownload` y está ubicado en el mismo directorio que tu archivo HTML.
+2. **Reproducción del Sonido**: La función `playSound` se encarga de reproducir el sonido cuando se activa el evento de sonido.
+
+Con estos cambios, el juego debería funcionar correctamente y reproducir el sonido especificado cuando se cumplan las condiciones necesarias.
